@@ -1,0 +1,1002 @@
+{
+  "name": "UGC Clothing",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Ads Recreation Tool Form",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Clothing ",
+              "fieldType": "file",
+              "multipleFiles": false
+            },
+            {
+              "fieldLabel": "Model",
+              "fieldType": "file",
+              "multipleFiles": false,
+              "acceptFileTypes": "Please upload a model you would like to add"
+            },
+            {
+              "fieldLabel": "Background Color"
+            },
+            {
+              "fieldLabel": "Tops",
+              "fieldType": "file"
+            },
+            {
+              "fieldLabel": "Trouser",
+              "fieldType": "file"
+            },
+            {
+              "fieldLabel": "Shoes",
+              "fieldType": "file",
+              "multipleFiles": false
+            },
+            {
+              "fieldLabel": "Dimension",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "1024:1024"
+                  },
+                  {
+                    "option": "1080:1440"
+                  },
+                  {
+                    "option": "1920:1080"
+                  },
+                  {
+                    "option": "1080:1920"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Email",
+              "placeholder": "Please enter your email",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        -1344,
+        0
+      ],
+      "id": "6e8c3e6e-214b-42c8-8b92-7525d6283422",
+      "name": "On form submission",
+      "webhookId": "1f502b8f-a211-4517-9726-26fa83e06fc9"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1) Pull the form fields off the very first item\nconst {\n  \"Property Name\": propertyName,\n  \"Property Address\": propertyAddress,\n  logoUrl\n} = items[0].json;\n\n// 2) Grab the binaries (all keys except \"logo\")\nconst keys = Object.keys(items[0].binary).filter(k => k !== \"logo\");\n\n// 3) Emit one item per property-photo, carrying form data\nreturn keys.map(key => ({\n  json: {\n    propertyName,\n    propertyAddress,  // <— now correctly pulled\n    logoUrl,\n    imageField: key\n  },\n  binary: {\n    file: items[0].binary[key]\n  }\n}));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1088,
+        0
+      ],
+      "id": "8d799dcb-8973-4422-8721-a28e7004afd6",
+      "name": "Split Images"
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "data.url"
+            },
+            {
+              "fieldToAggregate": "id"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        -592,
+        0
+      ],
+      "id": "411f2671-b583-4f5d-981d-d6db91a09a96",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.response_url }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -464,
+        496
+      ],
+      "id": "b39d0a0a-1aa8-4fc9-87b5-54edb807551c",
+      "name": "Get Image URL",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "4GIOGMX3upx4SIQY",
+          "name": "Fal.ai"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.status_url }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1120,
+        480
+      ],
+      "id": "3f0c691d-ef66-4daf-8903-51493f9aeccc",
+      "name": "Check Image Status",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "4GIOGMX3upx4SIQY",
+          "name": "Fal.ai"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 10
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -1344,
+        480
+      ],
+      "id": "a4666a87-816e-44b5-8d7e-b8429b5d954d",
+      "name": "Wait Image",
+      "webhookId": "6892d558-112b-4725-8260-b14e2dcaa517"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f380b3af-b74d-4ec5-84a9-bba0bb0b1003",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "COMPLETED",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -832,
+        480
+      ],
+      "id": "a014e221-a6cc-4caf-9a72-43e875af47c8",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://queue.fal.run/fal-ai/nano-banana/edit",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "prompt",
+              "value": "=Replace the current model({{ $json.url[1] }}) tops, bottoms and shoes with the following:\n\nProduct 1: ({{ $json.url[0] }})\n\nProduct 2: ({{ $json.url[2] }})\n\nProduct 3: ({{ $json.url[3] }})\n\nEach product must be rendered with perfect realism, showing natural fit, folds, and shadows, as if originally worn. Do not alter the design or branding of any product whatsoever. Maintain complete consistency for all product designs as they appear in their original sources. Do not cutoff the model. \n\nBackground settings: {{ $('On form submission').item.json['Background Color'] }}"
+            },
+            {
+              "name": "image_urls[0]",
+              "value": "={{ $json.url[0] }}"
+            },
+            {
+              "name": "aspect_ratio",
+              "value": "1:1"
+            },
+            {
+              "name": "image_urls[1]",
+              "value": "={{ $json.url[1] }}"
+            },
+            {
+              "name": "image_urls[2]",
+              "value": "={{ $json.url[2] }}"
+            },
+            {
+              "name": "image_urls[3]",
+              "value": "={{ $json.url[3] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        144,
+        64
+      ],
+      "id": "be33d738-8e92-466b-9a2c-bc3edb5df66c",
+      "name": "Recreate Image2",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "4GIOGMX3upx4SIQY",
+          "name": "Fal.ai"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.imgbb.com/1/upload",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": ""
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "image",
+              "inputDataFieldName": "=file"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -848,
+        0
+      ],
+      "id": "a8b338b2-a94c-4b8d-9119-f8e6d06a6897",
+      "name": "Get URL"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.images[0].url }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -80,
+        496
+      ],
+      "id": "5b8ee62b-2886-4ae9-945f-77970c32fe1c",
+      "name": "Download Image"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://queue.fal.run/fal-ai/ideogram/v3/reframe",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"rendering_speed\": \"BALANCED\",\n  \"num_images\": 1,\n  \"image_url\": \"{{ $('Get URL1').item.json.data.url }}\",\n  \"image_size\": {\n    \"width\": {{ $json.width }},\n    \"height\": {{ $json.height }}\n  }\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        848,
+        496
+      ],
+      "id": "f9de34ff-c5d3-43d1-b7ff-baa254967532",
+      "name": "Image Resizer",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "4GIOGMX3upx4SIQY",
+          "name": "Fal.ai"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('On form submission').item.json.Email }}",
+        "subject": "Image is Ready!",
+        "message": "=<!DOCTYPE html> <html>   <body style=\"font-family: Arial, sans-serif; font-size: 16px; color: #333;\">     <p>Hi,</p>          <p>Your image has been generated please see attachment.</p>                   <p>Thank you,<br>DGTLBase</p>   </body> </html>",
+        "options": {
+          "attachmentsUi": {
+            "attachmentsBinary": [
+              {}
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -64,
+        736
+      ],
+      "id": "afb59b19-f6df-400d-b2e4-7ade918e15c7",
+      "name": "Send a message",
+      "webhookId": "3c65f989-7098-4201-8846-1f482d131b8d",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "ftMJ19DZtqaMtMKR",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://queue.fal.run/fal-ai/image-editing/requests/{{ $json.request_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -704,
+        736
+      ],
+      "id": "e02f0487-1ab8-4dc6-ba4f-91b3cbccb729",
+      "name": "Get Image URL1",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "4GIOGMX3upx4SIQY",
+          "name": "Fal.ai"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://queue.fal.run/fal-ai/ideogram/requests/{{ $json.request_id }}/status",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1120,
+        720
+      ],
+      "id": "5157bb69-acbd-44e2-9c6c-a7d30a607982",
+      "name": "Check Image Status1",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "4GIOGMX3upx4SIQY",
+          "name": "Fal.ai"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 10
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -1344,
+        704
+      ],
+      "id": "3d87fbe9-cbbb-4558-afa1-f63e9e81cc2c",
+      "name": "Wait Image1",
+      "webhookId": "6892d558-112b-4725-8260-b14e2dcaa517"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f380b3af-b74d-4ec5-84a9-bba0bb0b1003",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "COMPLETED",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -912,
+        720
+      ],
+      "id": "fd6a4c9d-e063-4f8d-a3da-df1421a94ef5",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.images[0].url }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -288,
+        736
+      ],
+      "id": "e2855583-e8fd-4d90-9ddf-33daf2c9d8fa",
+      "name": "Download Image1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.imgbb.com/1/upload",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": ""
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "image",
+              "inputDataFieldName": "=data"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        144,
+        496
+      ],
+      "id": "01438137-9ed3-4b9f-b76e-0fa2db7a4ad2",
+      "name": "Get URL1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "178f0498-6f45-46cb-9a22-74ff12f441f7",
+              "name": "Dimensions",
+              "value": "={{ $('On form submission').item.json.Dimension }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        352,
+        496
+      ],
+      "id": "e4cd4578-cbae-4839-956a-7cbe193c6328",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "instructions": "Extract width and height from Dimensions",
+        "codeGeneratedForPrompt": "Extract width and height from Dimensions",
+        "jsCode": "const items = $input.all();\nconst updatedItems = items.map((item) => {\n  const dimensions = item?.json?.Dimensions.split(\":\");\n  item.json.width = dimensions[0];\n  item.json.height = dimensions[1];\n  return item;\n});\nreturn updatedItems;\n"
+      },
+      "type": "n8n-nodes-base.aiTransform",
+      "typeVersion": 1,
+      "position": [
+        560,
+        496
+      ],
+      "id": "a463e08a-a2c5-46b0-af90-99f76514067f",
+      "name": "AI Transform"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://queue.fal.run/fal-ai/nano-banana/edit",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "prompt",
+              "value": "=Replace the current model({{ $json.url[1] }}) tops, bottoms and shoes with the following:\n\nProduct 1: ({{ $json.url[0] }})\n\nProduct 2: ({{ $json.url[2] }})\n\n\nEach product must be rendered with perfect realism, showing natural fit, folds, and shadows, as if originally worn. Do not alter the design or branding of any product whatsoever. Maintain complete consistency for all product designs as they appear in their original sources. Do not cutoff the model. \n\nBackground settings: {{ $('On form submission').item.json['Background Color'] }}"
+            },
+            {
+              "name": "image_urls[0]",
+              "value": "={{ $json.url[0] }}"
+            },
+            {
+              "name": "aspect_ratio",
+              "value": "1:1"
+            },
+            {
+              "name": "image_urls[1]",
+              "value": "={{ $json.url[1] }}"
+            },
+            {
+              "name": "image_urls[2]",
+              "value": "={{ $json.url[2] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        144,
+        -128
+      ],
+      "id": "3b23866a-326f-4001-a633-e22321ae6ebc",
+      "name": "Recreate Image",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "4GIOGMX3upx4SIQY",
+          "name": "Fal.ai"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://queue.fal.run/fal-ai/nano-banana/edit",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "prompt",
+              "value": "=Replace the current model({{ $json.url[1] }}) tops, bottoms and shoes with the following:\n\nProduct 1: ({{ $json.url[0] }})\n\nEach product must be rendered with perfect realism, showing natural fit, folds, and shadows, as if originally worn. Do not alter the design or branding of any product whatsoever. Maintain complete consistency for all product designs as they appear in their original sources. Do not cutoff the model. \n\nBackground settings: {{ $('On form submission').item.json['Background Color'] }}"
+            },
+            {
+              "name": "image_urls[0]",
+              "value": "={{ $json.url[0] }}"
+            },
+            {
+              "name": "aspect_ratio",
+              "value": "1:1"
+            },
+            {
+              "name": "image_urls[1]",
+              "value": "={{ $json.url[1] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        144,
+        256
+      ],
+      "id": "e179ce68-414f-419e-a84a-2057bfeab08a",
+      "name": "Recreate Image3",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "4GIOGMX3upx4SIQY",
+          "name": "Fal.ai"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "bb517aab-da79-4644-9bbd-18af79f9fc47",
+              "leftValue": "={{ $json.url[2] }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "f6bc64fa-2a86-4946-b783-672adafb2508",
+              "leftValue": "={{ $json.url[3] }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notExists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -384,
+        0
+      ],
+      "id": "86a1d5a3-7f20-45d2-bcc5-1cfa4558bd50",
+      "name": "If2"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "03707c52-5cea-4fc4-9cb7-67b314eb6a24",
+              "leftValue": "={{ $json.url[3] }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -128,
+        80
+      ],
+      "id": "5203a91f-06c0-4008-94cf-aa69265c6315",
+      "name": "If3"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Split Images",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Images": {
+      "main": [
+        [
+          {
+            "node": "Get URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Image Status": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait Image": {
+      "main": [
+        [
+          {
+            "node": "Check Image Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Wait Image",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Image URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recreate Image2": {
+      "main": [
+        [
+          {
+            "node": "Wait Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get URL": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Image URL": {
+      "main": [
+        [
+          {
+            "node": "Download Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Image Resizer": {
+      "main": [
+        [
+          {
+            "node": "Wait Image1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Image URL1": {
+      "main": [
+        [
+          {
+            "node": "Download Image1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Image Status1": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait Image1": {
+      "main": [
+        [
+          {
+            "node": "Check Image Status1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Wait Image1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Image URL1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Image1": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Image": {
+      "main": [
+        [
+          {
+            "node": "Get URL1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get URL1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "AI Transform",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Transform": {
+      "main": [
+        [
+          {
+            "node": "Image Resizer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recreate Image": {
+      "main": [
+        [
+          {
+            "node": "Wait Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recreate Image3": {
+      "main": [
+        [
+          {
+            "node": "Wait Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [
+          {
+            "node": "Recreate Image",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If3": {
+      "main": [
+        [
+          {
+            "node": "Recreate Image2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Recreate Image3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "9e52d397-75d7-4250-88cf-411aa63e1099",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "563081422b97a9613202fc9e330444d764a4b838aee8c810ae24b64e312e87c7"
+  },
+  "id": "qO6vQWYEgeiqOgjN",
+  "tags": []
+}
